@@ -20,4 +20,5 @@ Prior art acknowledged with special thanks: "Synesthesia Add-on: a Tool for HTML
 - Hard caps: ≤12 simultaneous voices, ≤20 note events/second
 
 ## Related
+- [Source code & releases](https://github.com/kakon77777-commits/webcode-sonification-engine): public GitHub repository (Apache-2.0)
 - [EVEMISS Technology](https://evemisstechnology.com/): parent company site

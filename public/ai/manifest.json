@@ -37,5 +37,10 @@
     "length_seconds": [30, 90]
   },
   "status": "developer-preview",
-  "distribution": { "chrome_web_store": "planned", "github": "planned", "load_unpacked": true }
+  "repository": "https://github.com/kakon77777-commits/webcode-sonification-engine",
+  "distribution": {
+    "chrome_web_store": "planned",
+    "github_releases": "https://github.com/kakon77777-commits/webcode-sonification-engine/releases",
+    "load_unpacked": true
+  }
 }
