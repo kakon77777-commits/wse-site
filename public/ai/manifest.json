@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "WebCode Sonification Engine",
+  "abbreviation": "WSE",
+  "version": "0.2.0",
+  "type": "browser-extension",
+  "url": "https://wse.evemisstechnology.com/",
+  "demo": "https://wse.evemisstechnology.com/demo/",
+  "description": "Open-source Chrome MV3 extension transforming webpage computational structure (DOM, sampled CSS, geometry) into deterministic generative music via Web Audio synthesis. Local-only analysis.",
+  "claim": "A webpage's accessible computational structure may define a reproducible generative musical identity.",
+  "prior_art": {
+    "title": "Synesthesia Add-on: a Tool for HTML Sonification",
+    "venue": "Brazilian Symposium on Computer Music, 2017",
+    "repository": "https://github.com/rppbodo/synesthesia-addon",
+    "acknowledgment": "Special thanks to the author. WSE was designed independently and is not an equivalent system, but this pioneer work established the feasibility of the direction."
+  },
+  "license": "Apache-2.0",
+  "author": { "name": "Neo.K", "organization": "EveMissLab / EVEMISS Technology" },
+  "pipeline": ["extract", "normalize", "fingerprint", "profile", "score", "audio"],
+  "determinism": {
+    "seed": "Hash(CanonicalURL, StructuralFingerprint)",
+    "prng": "mulberry32",
+    "guarantee": "same page structure + same options => identical score"
+  },
+  "privacy": {
+    "local_only": true,
+    "reads_form_values": false,
+    "reads_editable_content": false,
+    "url_canonicalization": "origin + pathname only",
+    "telemetry": false
+  },
+  "music": {
+    "scales": ["major", "minor", "pentatonic", "minorPentatonic", "dorian", "lydian", "mixolydian"],
+    "styles": ["ambient", "piano", "electronic", "orchestral", "eastern"],
+    "instruments": ["pad", "lowpad", "strings", "piano", "epiano", "pluck", "bell", "mallet", "bass", "brass", "lead", "flute", "xiao", "guitar", "kick", "hihat", "perc", "taiko"],
+    "limits": { "max_voices": 12, "max_events_per_second": 20 },
+    "length_seconds": [30, 90]
+  },
+  "status": "developer-preview",
+  "distribution": { "chrome_web_store": "planned", "github": "planned", "load_unpacked": true }
+}

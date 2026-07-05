@@ -1,0 +1,15 @@
+// WebCode Sonification Engine — product site (Cloudflare Workers Static Assets, assets-only)
+// Deploy: node scripts/sync-demo.mjs && npx wrangler deploy
+// Custom domain: wse.evemisstechnology.com
+{
+  "name": "wse-site",
+  "compatibility_date": "2026-07-01",
+  "routes": [
+    { "pattern": "wse.evemisstechnology.com", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "./public",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

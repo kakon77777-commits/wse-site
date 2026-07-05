@@ -1,0 +1,23 @@
+# WebCode Sonification Engine (WSE)
+
+> An open-source experimental browser extension (Chrome, Manifest V3) that transforms a webpage's computational structure — DOM topology, sampled CSS, visual geometry — into deterministic, reproducible generative music, synthesized locally with the Web Audio API. Concept and project direction: Neo.K (EveMissLab). License: Apache-2.0.
+
+Core claim: a webpage's accessible computational structure may define a reproducible generative musical identity. Seed = Hash(CanonicalURL, StructuralFingerprint) — never URL alone. Local-only: no page content is ever uploaded; form values are never read.
+
+Prior art acknowledged with special thanks: "Synesthesia Add-on: a Tool for HTML Sonification" (Brazilian Symposium on Computer Music, 2017), https://github.com/rppbodo/synesthesia-addon. WSE does not claim to be the first HTML-to-music extension; it was designed independently, but this pioneer work established the feasibility of the direction.
+
+## Pages
+- [Home](https://wse.evemisstechnology.com/): product overview, mapping table, styles, roadmap
+- [Live demo](https://wse.evemisstechnology.com/demo/): the full pipeline running in-page — the page is its own score
+- [Machine-readable manifest](https://wse.evemisstechnology.com/ai/manifest.json)
+
+## Mapping (v0.2)
+- Tag diversity + node count → tempo (52–176 BPM)
+- Average CSS hue → key; lightness × saturation → one of 7 scales
+- Dominant structural family (content/navigation/media/form) → lead & arpeggio instruments
+- Link density → Euclidean arpeggio pattern; image density → bells; button density → percussion
+- header/main/footer → song form Intro–A–B–A'–Outro
+- Hard caps: ≤12 simultaneous voices, ≤20 note events/second
+
+## Related
+- [EVEMISS Technology](https://evemisstechnology.com/): parent company site

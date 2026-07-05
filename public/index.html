@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebCode Sonification Engine — hear the structure of the web</title>
+  <meta name="description" content="An open-source browser extension that turns any webpage's structure into reproducible generative music. Deterministic, local-only, synthesized live. The web was never silent." />
+  <link rel="icon" type="image/png" sizes="48x48" href="/assets/icon48.png" />
+  <meta property="og:title" content="WebCode Sonification Engine" />
+  <meta property="og:description" content="Every webpage already has a structure. We let you hear it." />
+  <meta property="og:image" content="https://wse.evemisstechnology.com/assets/icon128.png" />
+  <meta property="og:url" content="https://wse.evemisstechnology.com/" />
+  <meta property="og:type" content="website" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f172a; --bg2: #0b1120; --panel: #1e293b; --line: #334155;
+      --text: #e2e8f0; --dim: #94a3b8; --teal: #38bdf8; --violet: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+    a { color: var(--teal); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+    /* Hero */
+    .hero { padding: 88px 0 64px; text-align: center; background:
+      radial-gradient(ellipse 70% 55% at 50% -10%, rgba(56, 189, 248, 0.16), transparent),
+      radial-gradient(ellipse 55% 45% at 80% 0%, rgba(167, 139, 250, 0.12), transparent); }
+    .bars { display: flex; gap: 7px; justify-content: center; align-items: center; height: 72px; margin-bottom: 28px; }
+    .bars span { width: 9px; border-radius: 4px; background: linear-gradient(180deg, var(--teal), var(--violet)); animation: pulse 1.6s ease-in-out infinite; }
+    .bars span:nth-child(1) { height: 26px; animation-delay: 0s; }
+    .bars span:nth-child(2) { height: 48px; animation-delay: .18s; }
+    .bars span:nth-child(3) { height: 68px; animation-delay: .36s; }
+    .bars span:nth-child(4) { height: 40px; animation-delay: .54s; }
+    .bars span:nth-child(5) { height: 56px; animation-delay: .72s; }
+    @keyframes pulse { 0%, 100% { transform: scaleY(0.55); opacity: .75; } 50% { transform: scaleY(1); opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .bars span { animation: none; } }
+    h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 700; letter-spacing: -0.02em; }
+    .grad { background: linear-gradient(90deg, var(--teal), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .tagline { margin-top: 14px; font-size: clamp(16px, 2.4vw, 20px); color: var(--dim); }
+    .tagline b { color: var(--text); font-weight: 600; }
+    .zh { color: var(--dim); font-size: 15px; margin-top: 6px; }
+    .cta { margin-top: 34px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-block; padding: 12px 22px; border-radius: 10px; font-weight: 600; font-size: 15px; border: 1px solid var(--line); color: var(--text); }
+    .btn:hover { text-decoration: none; border-color: var(--teal); }
+    .btn.primary { background: linear-gradient(135deg, #0369a1, #4f46e5); border: none; }
+    .btn.primary:hover { filter: brightness(1.15); }
+    .pill { display: inline-flex; gap: 8px; align-items: center; margin-top: 26px; padding: 5px 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--dim); }
+    .pill i { width: 7px; height: 7px; border-radius: 50%; background: #34d399; font-style: normal; }
+
+    section { padding: 56px 0; }
+    section.alt { background: var(--bg2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    h2 { font-size: 26px; margin-bottom: 8px; }
+    .sub { color: var(--dim); margin-bottom: 30px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+    .card h3 { font-size: 16px; margin-bottom: 8px; }
+    .card p { color: var(--dim); font-size: 14px; }
+    .card .zh2 { display: block; margin-top: 8px; font-size: 13px; color: #64748b; }
+
+    .pipe { font-family: ui-monospace, Consolas, monospace; font-size: clamp(11px, 1.9vw, 15px); text-align: center; background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 22px 12px; color: #7dd3fc; overflow-x: auto; white-space: nowrap; }
+    .pipe b { color: var(--violet); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    th { color: var(--dim); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    td:last-child { color: var(--dim); }
+    .tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+    .tablebox table { min-width: 480px; }
+    .tablebox td:first-child { color: var(--teal); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .chip { padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; color: var(--dim); }
+    .chip b { color: var(--text); font-weight: 600; }
+
+    ol.steps { padding-left: 20px; color: var(--dim); font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+    code { font-family: ui-monospace, Consolas, monospace; background: var(--bg2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 7px; font-size: 13px; color: #7dd3fc; }
+
+    .road { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+    .road .card b { color: var(--violet); display: block; margin-bottom: 6px; font-size: 13px; }
+    .road .card p { font-size: 13px; }
+
+    .note { border-left: 3px solid var(--violet); padding: 4px 0 4px 16px; color: var(--dim); font-size: 14px; margin-top: 26px; }
+
+    footer { border-top: 1px solid var(--line); padding: 34px 0 44px; color: var(--dim); font-size: 13px; }
+    footer .row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="wrap">
+      <div class="bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <h1><span class="grad">WebCode Sonification Engine</span></h1>
+      <p class="tagline"><b>Every webpage already has a structure. We let you hear it.</b></p>
+      <p class="zh">每一個網頁本來就有結構。我們只是讓你聽見它。—— 網頁代碼音樂化引擎</p>
+      <div class="cta">
+        <a class="btn primary" href="/demo/">▶ Live demo — hear a page right now</a>
+        <a class="btn" href="#how">How it works</a>
+        <a class="btn" href="#get">Get the extension</a>
+      </div>
+      <div class="pill"><i></i> v0.2.0 developer preview · open source (Apache-2.0) · local-only</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <h2>A browser extension that plays the page you're reading</h2>
+      <p class="sub">One click. WSE reads the current tab's DOM topology, sampled CSS and visual geometry, then synthesizes a 30–90&nbsp;second piece of music from it — live, in your browser, with the Web Audio API.</p>
+      <div class="cards">
+        <div class="card">
+          <h3>🎼 Deterministic sound identity</h3>
+          <p>The seed is <code>Hash(CanonicalURL, StructuralFingerprint)</code>. The same page structure always produces the same music — every site gets its own sound signature. When a site is redesigned, its music changes too.</p>
+          <span class="zh2">同一結構永遠是同一首曲子——網站自己的結構決定它成為什麼音樂。</span>
+        </div>
+        <div class="card">
+          <h3>🏛️ Structure picks the orchestra</h3>
+          <p>A text-heavy blog leads with keys and strings; a button-farm dashboard turns rhythmic; an image grid rings with bells. Seven scales, Euclidean groove signatures, and song form (Intro–A–B–A′–Outro) derived from header, sections and footer.</p>
+          <span class="zh2">內容型、導航型、媒體型、表單型網頁，各自拿到不同的主奏與節奏簽名。</span>
+        </div>
+        <div class="card">
+          <h3>🔒 Local-only by design</h3>
+          <p>No server, no telemetry. Analysis runs only when you click, only on the active tab. Form values and editable content are never read; query strings never enter the pipeline. Everything is synthesized — no samples, no downloads.</p>
+          <span class="zh2">所有分析都在本機。絕不上傳頁面內容，絕不讀取表單值。</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt" id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="sub">Two-stage architecture: faithful structural extraction first, then a music grammar that makes it listenable — scale quantization, a 1/16 rhythm grid, chord progressions, and hard density caps so a 500,000-node page cannot explode into noise.</p>
+      <div class="pipe">Webpage → <b>F</b>eatures → <b>N</b>ormalize → <b>Fingerprint</b> → Music <b>Profile</b> → <b>Score</b> → Web Audio</div>
+      <div style="height:22px"></div>
+      <div class="tablebox">
+        <table>
+          <tr><th>Page feature</th><th>Musical effect</th></tr>
+          <tr><td>Tag diversity + node count</td><td>Tempo (52–176 BPM)</td></tr>
+          <tr><td>Average CSS hue</td><td>Key (12 pitch classes)</td></tr>
+          <tr><td>Palette lightness × saturation</td><td>One of 7 scales — major, minor, dorian, lydian, mixolydian, pentatonics</td></tr>
+          <tr><td>Dominant structure family</td><td>Lead & arpeggio instruments (content / navigation / media / form)</td></tr>
+          <tr><td>Link density</td><td>Arpeggio busyness (Euclidean pattern)</td></tr>
+          <tr><td>Image density</td><td>Bell accents</td></tr>
+          <tr><td>Button density</td><td>Percussion groove</td></tr>
+          <tr><td>DOM depth</td><td>Pitch register width</td></tr>
+          <tr><td>header / sections / footer</td><td>Song form: Intro – A – B – A′ – Outro</td></tr>
+          <tr><td>Element positions</td><td>Stereo panning</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Five styles, one identity</h2>
+      <p class="sub">A style is a palette, not a skin — it changes articulation, register and rhythm roles. The page decides which voices inside the palette actually play. Tune everything with sliders: tempo, density, brightness, reverb.</p>
+      <div class="chips">
+        <span class="chip"><b>Ambient</b> · pads, e-piano, bells</span>
+        <span class="chip"><b>Piano</b> · piano, guitar, strings</span>
+        <span class="chip"><b>Electronic</b> · leads, kicks, hats</span>
+        <span class="chip"><b>Orchestral</b> · strings, brass, taiko</span>
+        <span class="chip"><b>Eastern 東方</b> · 蕭 xiao, 笛 flute, 太鼓 taiko, guitar</span>
+      </div>
+      <p class="note">All instruments are pure Web Audio synthesis — including a Karplus-Strong plucked-string guitar and breath-modeled xiao and flute. No sample libraries, nothing to download.</p>
+    </div>
+  </section>
+
+  <section class="alt" id="get">
+    <div class="wrap">
+      <h2>Get the extension</h2>
+      <p class="sub">v0.2.0 is a developer preview for Chrome (Manifest V3, permissions: <code>activeTab</code> · <code>scripting</code> · <code>storage</code> · <code>offscreen</code>). Chrome Web Store listing and the public GitHub repository are on the way.</p>
+      <ol class="steps">
+        <li>Build from source: <code>npm install &amp;&amp; npm run build</code></li>
+        <li>Open <code>chrome://extensions</code> and enable <b>Developer mode</b></li>
+        <li><b>Load unpacked</b> → select the <code>dist/</code> folder</li>
+        <li>Open any webpage, click the WSE icon → <b>Analyze &amp; Play</b></li>
+      </ol>
+      <p class="note">Can't install right now? The <a href="/demo/">live demo</a> runs the exact same pipeline on the demo page itself — press play and the page becomes its own score.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Roadmap</h2>
+      <p class="sub">未來擴充計畫 — where this is going.</p>
+      <div class="road">
+        <div class="card"><b>v0.3</b><p>Scroll Mode (viewport as playhead) · Mutation Mode (live DOM becomes a live performance) · WAV export</p></div>
+        <div class="card"><b>v0.4</b><p>Custom mapping profiles · MIDI export · more instruments &amp; ornaments</p></div>
+        <div class="card"><b>v1.0</b><p>Firefox · public mapping SDK · research dataset &amp; listening studies</p></div>
+        <div class="card"><b>Research</b><p>Do sites form recognizable sound signatures? Can you name a site type by ear? Are redesigns audible?</p></div>
+      </div>
+      <p class="note">🙏 <b>Special thanks to the pioneer.</b> <a href="https://github.com/rppbodo/synesthesia-addon"><i>Synesthesia Add-on — a Tool for HTML Sonification</i></a> (Brazilian Symposium on Computer Music, 2017) treated HTML pages as musical scores in a browser add-on years before WSE existed. WSE was designed independently and is not an equivalent system — but creating is easier when a pioneer has already shown a direction is possible, and we thank its author for that. WSE's narrower claim: a webpage's accessible computational structure defines a <b>reproducible generative musical identity</b>.<br /><span style="font-size:13px">特別感謝先行者：WSE 為獨立設計、並不完全等同，但正因為有人先證明過「HTML 頁面可以作為樂譜」，我們在創作時得以確信這個方向可行。</span></p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap row">
+      <span>© 2026 <a href="https://evemisstechnology.com/">EVEMISS Technology</a> · Concept &amp; direction: Neo.K (EveMissLab) · Apache-2.0</span>
+      <span><b style="color:var(--text)">The web was never silent.</b> 網路從來不是無聲的。</span>
+    </div>
+  </footer>
+
+</body>
+</html>

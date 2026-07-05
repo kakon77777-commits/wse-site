@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WSE Demo — hear this page</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+    header { padding: 40px 24px; background: linear-gradient(135deg, #0c4a6e, #312e81); }
+    header h1 { font-size: 28px; }
+    header p { color: #bae6fd; margin-top: 8px; }
+    nav { display: flex; gap: 16px; padding: 12px 24px; background: #1e293b; border-bottom: 1px solid #334155; }
+    nav a { color: #38bdf8; text-decoration: none; font-size: 14px; }
+    main { max-width: 880px; margin: 0 auto; padding: 32px 24px; }
+    section { margin-bottom: 36px; }
+    h2 { font-size: 20px; margin-bottom: 12px; color: #a78bfa; }
+    p { color: #94a3b8; margin-bottom: 10px; }
+    article { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 18px; margin-bottom: 14px; }
+    article h3 { font-size: 15px; margin-bottom: 6px; }
+    button { font: inherit; color: #e2e8f0; background: #334155; border: 1px solid #475569; border-radius: 8px; padding: 8px 14px; cursor: pointer; margin: 4px 6px 4px 0; }
+    button.primary { background: linear-gradient(135deg, #0369a1, #4f46e5); border: none; font-weight: 600; font-size: 16px; padding: 12px 22px; }
+    .imggrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .imggrid img { aspect-ratio: 4/3; width: 100%; border-radius: 8px; object-fit: cover; }
+    pre { background: #0b1120; border: 1px solid #334155; border-radius: 8px; padding: 14px; overflow-x: auto; font-size: 12px; color: #7dd3fc; }
+    footer { padding: 28px 24px; background: #1e293b; border-top: 1px solid #334155; color: #64748b; font-size: 13px; }
+    #panel { position: sticky; top: 0; z-index: 9; background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid #334155; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    select { font: inherit; background: #1e293b; color: #e2e8f0; border: 1px solid #475569; border-radius: 6px; padding: 6px 10px; }
+    #out { font-size: 13px; color: #94a3b8; margin-left: 8px; }
+    .knob { font-size: 11px; color: #64748b; display: inline-flex; align-items: center; gap: 4px; }
+    .knob input { width: 70px; accent-color: #38bdf8; }
+    ul { color: #94a3b8; padding-left: 22px; }
+  </style>
+</head>
+<body>
+  <div id="panel">
+    <button id="play" class="primary">▶ Analyze &amp; Play This Page</button>
+    <button id="stop">■ Stop</button>
+    <button id="regen">↻ Regenerate</button>
+    <select id="style">
+      <option value="ambient" selected>Ambient</option>
+      <option value="piano">Piano</option>
+      <option value="electronic">Electronic</option>
+      <option value="orchestral">Orchestral</option>
+      <option value="eastern">Eastern 東方</option>
+    </select>
+    <select id="mode">
+      <option value="hybrid" selected>Hybrid</option>
+      <option value="musical">Musical</option>
+      <option value="analytical">Analytical</option>
+    </select>
+    <span class="knob">Tempo <input type="range" id="s-tempo" min="-30" max="30" step="1" value="0"></span>
+    <span class="knob">Density <input type="range" id="s-density" min="50" max="150" step="5" value="100"></span>
+    <span class="knob">Bright <input type="range" id="s-bright" min="0" max="100" step="5" value="50"></span>
+    <span class="knob">Reverb <input type="range" id="s-reverb" min="0" max="100" step="5" value="50"></span>
+    <span id="out">idle</span>
+  </div>
+
+  <header>
+    <p style="margin-bottom:10px"><a href="/" style="color:#7dd3fc;font-size:13px;text-decoration:none">← wse.evemisstechnology.com</a></p>
+    <h1>WebCode Sonification Engine — Demo Page</h1>
+    <p>Every webpage already has a structure. We let you hear it. This page IS the instrument.</p>
+  </header>
+
+  <nav>
+    <a href="#about">About</a><a href="#how">How it works</a><a href="#gallery">Gallery</a>
+    <a href="#data">Data</a><a href="#faq">FAQ</a><a href="#contact">Contact</a>
+  </nav>
+
+  <main>
+    <section id="about">
+      <h2>About this demo</h2>
+      <article>
+        <h3>The page is the score</h3>
+        <p>This standalone page runs the exact extension pipeline: DOM traversal, computed-style
+        sampling, geometry buckets, structural fingerprint, deterministic score generation and
+        Web Audio synthesis. Reload and press play again — same structure, same music.</p>
+      </article>
+      <article>
+        <h3>Deterministic identity</h3>
+        <p>The fingerprint is hashed from the canonical URL plus structural statistics, so a page
+        whose layout changes will also change its melody, tempo and orchestration.</p>
+      </article>
+    </section>
+
+    <section id="how">
+      <h2>How it works</h2>
+      <p>HTML provides structure, CSS provides timbre, the DOM provides topology, geometry provides
+      space. The music grammar layer quantizes everything into a listenable score.</p>
+      <pre>W → F(W) → Z → S_W → Θ → Q → A</pre>
+      <p>Buttons below exist purely to raise this page's button density — which the mapping turns
+      into percussion presence.</p>
+      <button>Percussion +1</button><button>Percussion +2</button><button>Percussion +3</button>
+      <button>Percussion +4</button><button>Percussion +5</button><button>Percussion +6</button>
+    </section>
+
+    <section id="gallery">
+      <h2>Gallery (image density → bell layer)</h2>
+      <div class="imggrid">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23164e63'/%3E%3C/svg%3E" alt="tile 1">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23155e75'/%3E%3C/svg%3E" alt="tile 2">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%233b0764'/%3E%3C/svg%3E" alt="tile 3">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%234c1d95'/%3E%3C/svg%3E" alt="tile 4">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23164e63'/%3E%3C/svg%3E" alt="tile 5">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%23155e75'/%3E%3C/svg%3E" alt="tile 6">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%233b0764'/%3E%3C/svg%3E" alt="tile 7">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='3'%3E%3Crect width='4' height='3' fill='%234c1d95'/%3E%3C/svg%3E" alt="tile 8">
+      </div>
+    </section>
+
+    <section id="data">
+      <h2>Structural filler</h2>
+      <article><h3>Alpha</h3><p>Deep trees widen the pitch register. Nested content produces wider intervals for the melodic walk.</p></article>
+      <article><h3>Beta</h3><p>Link-dense pages get busier arpeggios: navigation-heavy sites literally sound more plucked.</p></article>
+      <article><h3>Gamma</h3><p>Dark palettes choose minor scales and darker timbres; bright marketing pages drift major.</p></article>
+      <ul>
+        <li><a href="#a1">Sample link one</a></li><li><a href="#a2">Sample link two</a></li>
+        <li><a href="#a3">Sample link three</a></li><li><a href="#a4">Sample link four</a></li>
+        <li><a href="#a5">Sample link five</a></li><li><a href="#a6">Sample link six</a></li>
+        <li><a href="#a7">Sample link seven</a></li><li><a href="#a8">Sample link eight</a></li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <h2>FAQ</h2>
+      <article><h3>Is anything uploaded?</h3><p>No. Analysis is local-only; the extension never transmits page content anywhere.</p></article>
+      <article><h3>Why does the same site always sound the same?</h3><p>Deterministic seed: Hash(CanonicalURL, StructuralFingerprint). Regenerate mixes in a variation index while keeping the site's identity.</p></article>
+    </section>
+  </main>
+
+  <footer id="contact">
+    <p>WebCode Sonification Engine v0.2 — open source, Apache-2.0. Concept and project direction: Neo.K (EveMissLab).</p>
+    <p>🙏 With gratitude to the pioneer: <a href="https://github.com/rppbodo/synesthesia-addon" style="color:#7dd3fc">Synesthesia Add-on — a Tool for HTML Sonification</a> (Brazilian Symposium on Computer Music, 2017).</p>
+    <p>The web was never silent.</p>
+  </footer>
+
+  <script src="demo.js"></script>
+</body>
+</html>
