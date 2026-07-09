@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — WebCode Sonification Engine</title>
+  <meta name="description" content="WSE privacy policy: local-only analysis, no data collection, no telemetry, nothing ever leaves your browser." />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #0b1120; color: #e2e8f0; line-height: 1.75; }
+    header { padding: 28px 24px; border-bottom: 1px solid #1e293b; background: #0f172a; }
+    header a { color: #38bdf8; text-decoration: none; font-size: 14px; }
+    main { max-width: 760px; margin: 0 auto; padding: 40px 24px 64px; }
+    h1 { font-size: 26px; margin-bottom: 6px; }
+    .date { color: #64748b; font-size: 13px; margin-bottom: 30px; }
+    h2 { font-size: 18px; color: #a78bfa; margin: 30px 0 10px; }
+    p, li { color: #94a3b8; margin-bottom: 10px; }
+    ul { padding-left: 22px; }
+    b { color: #e2e8f0; }
+    code { font-family: ui-monospace, Consolas, monospace; color: #7dd3fc; font-size: 0.92em; }
+    .zh { border-top: 1px solid #1e293b; margin-top: 44px; padding-top: 36px; }
+    .box { border: 1px solid #1e293b; border-left: 3px solid #38bdf8; border-radius: 8px; padding: 14px 18px; background: #0f172a; margin: 16px 0; }
+    footer { padding: 24px; border-top: 1px solid #1e293b; color: #64748b; font-size: 12px; text-align: center; }
+    footer a { color: #38bdf8; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header><a href="/">← WebCode Sonification Engine</a></header>
+  <main>
+    <h1>Privacy Policy</h1>
+    <p class="date">Effective 2026-07-09 · applies to the WebCode Sonification Engine browser extension (v0.3.0 and later) and this website</p>
+
+    <div class="box">
+      <p><b>The short version: we collect nothing.</b> All analysis and music synthesis run locally inside your browser. The extension has no server, sends no network requests, and contains no telemetry, analytics or tracking of any kind. Nothing you browse ever leaves your machine.</p>
+    </div>
+
+    <h2>What the extension does</h2>
+    <p>When — and only when — you click <b>Analyze &amp; Play</b> or <b>Analyze &amp; Visualize</b>, WSE reads structural statistics of the page in the current tab (element counts, tag names, DOM depth, sampled computed styles, element geometry) and converts them into a musical score, which is synthesized locally with the Web Audio API.</p>
+
+    <h2>What is never read</h2>
+    <ul>
+      <li>Form values: the contents of <code>input</code>, <code>textarea</code> and <code>select</code> elements are never read — including password fields.</li>
+      <li>Editable regions: anything inside <code>contenteditable</code> elements is excluded, at any nesting depth.</li>
+      <li>Your text: only aggregate statistics (character count, word count) are computed; the text itself is never stored or transmitted.</li>
+      <li>URLs: only <code>origin + pathname</code> enters the pipeline — query strings and fragments (which often contain tokens or search terms) are discarded.</li>
+      <li>Browsing history: the extension only acts on the active tab, only after your click, and retains nothing about which pages you analyzed.</li>
+    </ul>
+
+    <h2>What is stored, and where</h2>
+    <ul>
+      <li>Your preferences (style, mode, tuning sliders) — stored locally via <code>chrome.storage.local</code>.</li>
+      <li>The most recently generated score and its element-token sample (tag names + nesting depth only) — stored locally so the visualizer tab can play it. Overwritten on the next run.</li>
+    </ul>
+    <p>Nothing is synced, uploaded, sold or shared. There are no accounts and no third-party services.</p>
+
+    <h2>Permissions, honestly explained</h2>
+    <ul>
+      <li><code>activeTab</code> — temporary access to the current tab, granted by your click. No persistent host access to any website.</li>
+      <li><code>scripting</code> — injects the analysis script into the current tab after your click.</li>
+      <li><code>storage</code> — saves your preferences and the last generated score, locally.</li>
+      <li><code>offscreen</code> — creates a hidden extension page to host audio playback (MV3 service workers cannot play audio).</li>
+    </ul>
+
+    <h2>This website</h2>
+    <p>wse.evemisstechnology.com is a static site served by Cloudflare. It sets no cookies and runs no analytics scripts. Cloudflare may process standard server logs (IP address, user agent) to deliver the site; see <a href="https://www.cloudflare.com/privacypolicy/" style="color:#38bdf8">Cloudflare's privacy policy</a>.</p>
+
+    <h2>Changes &amp; contact</h2>
+    <p>If this policy ever changes, the new version will be posted at this URL with an updated effective date. Questions: <a href="mailto:kakon77777@gmail.com" style="color:#38bdf8">kakon77777@gmail.com</a> (EveMissLab / EVEMISS TECHNOLOGY CO., LTD.).</p>
+
+    <div class="zh">
+      <h1>隱私政策（中文摘要）</h1>
+      <p class="date">生效日 2026-07-09</p>
+      <p><b>簡短版本：我們什麼都不收集。</b>所有分析與音樂合成都在你的瀏覽器本機執行。本擴充功能沒有伺服器、不發送任何網路請求、沒有任何遙測或分析追蹤。你瀏覽的內容永遠不會離開你的電腦。</p>
+      <ul>
+        <li>只有在你點擊「Analyze &amp; Play / Visualize」時，才會讀取目前分頁的<b>結構統計</b>（元素數量、標籤名稱、DOM 深度、抽樣樣式與版面幾何）。</li>
+        <li><b>絕不讀取</b>：表單值（含密碼欄）、contenteditable 內容、你的文字本身（只算字數）、網址的 query string 與 fragment、瀏覽歷史。</li>
+        <li><b>本機儲存</b>：偏好設定（風格／模式／滑桿）與最近一次生成的樂譜，僅存在本機，下次執行即覆蓋。</li>
+        <li>權限用途：<code>activeTab</code>（點擊時暫時存取目前分頁）、<code>scripting</code>（注入分析腳本）、<code>storage</code>（本機偏好）、<code>offscreen</code>（音訊播放）。</li>
+      </ul>
+      <p>本網站為靜態網站（Cloudflare 代管），不設 cookie、不跑分析腳本。聯絡：kakon77777@gmail.com。</p>
+    </div>
+  </main>
+  <footer>
+    © 2026 <a href="https://evemisstechnology.com/">EVEMISS Technology</a> · WebCode Sonification Engine · Apache-2.0 · <a href="/">Home</a>
+  </footer>
+</body>
+</html>
