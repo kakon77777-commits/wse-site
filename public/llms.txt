@@ -11,7 +11,9 @@ Prior art acknowledged with special thanks: "Synesthesia Add-on: a Tool for HTML
 - [Live demo](https://wse.evemisstechnology.com/demo/): the full pipeline running in-page — the page is its own score
 - [Machine-readable manifest](https://wse.evemisstechnology.com/ai/manifest.json)
 
-## Mapping (v0.2)
+## Mapping (v0.3)
+
+New in v0.3 — Visualizer: the extension's "Analyze & Visualize" opens a full-tab view where the page's element tokens light up as "their" notes sound (links → arpeggio, images → bells, buttons → percussion) above a scrolling piano-roll score; every NoteEvent carries the mapping layer that generated it. Subtrees marked data-wse-ignore are excluded from extraction.
 - Tag diversity + node count → tempo (52–176 BPM)
 - Average CSS hue → key; lightness × saturation → one of 7 scales
 - Dominant structural family (content/navigation/media/form) → lead & arpeggio instruments

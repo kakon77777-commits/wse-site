@@ -8,6 +8,7 @@
     const attr = el.getAttribute("contenteditable");
     return attr !== null && attr.toLowerCase() !== "false";
   }
+  var IGNORE_ATTR = "data-wse-ignore";
   function traverseDom(doc) {
     const root = doc.documentElement;
     const elements = [];
@@ -16,6 +17,7 @@
     const stack = [{ el: root, depth: 0 }];
     while (stack.length > 0) {
       const item = stack.pop();
+      if (item.el.hasAttribute(IGNORE_ATTR)) continue;
       elements.push(item);
       if (elements.length >= MAX_DOM_NODES) {
         truncated = stack.length > 0;
@@ -84,6 +86,7 @@
         if (TEXT_SKIP_PARENTS.has(parent.tagName.toLowerCase())) continue;
         const editableHost = parent.closest("[contenteditable]");
         if (editableHost && isEditable(editableHost)) continue;
+        if (parent.closest(`[${IGNORE_ATTR}]`)) continue;
         const text = node.nodeValue ?? "";
         const trimmed = text.trim();
         if (trimmed.length === 0) continue;
@@ -268,6 +271,16 @@
 
   // src/content/extract.ts
   var MAX_SCRIPTS = 300;
+  var MAX_TOKENS = 360;
+  function extractTokens(traversal, cap = MAX_TOKENS) {
+    const els = traversal.elements;
+    const stride = Math.max(1, Math.ceil(els.length / cap));
+    const tokens = [];
+    for (let i = 0; i < els.length && tokens.length < cap; i += stride) {
+      tokens.push({ tag: els[i].el.tagName.toLowerCase(), depth: Math.min(32, els[i].depth) });
+    }
+    return tokens;
+  }
   function extractScriptFeatures(doc) {
     const scripts = doc.scripts;
     const total = scripts.length;
@@ -309,7 +322,8 @@
       dom: computeDomFeatures(doc, traversal),
       style: extractStyleFeatures(traversal.elements, win),
       geometry: extractGeometryFeatures(traversal.elements, win),
-      script: extractScriptFeatures(doc)
+      script: extractScriptFeatures(doc),
+      tokens: extractTokens(traversal)
     };
   }
 
@@ -1073,7 +1087,8 @@
             pitch: degreeToMidi(key, scale, rootDeg + v * 2, cfg.padOctave),
             velocity: (0.22 + 0.18 * norm.lightness) * sGain,
             instrument: cfg.pad,
-            pan: padSpread[v]
+            pan: padSpread[v],
+            layer: "pad"
           });
         }
         events.push({
@@ -1082,7 +1097,8 @@
           pitch: degreeToMidi(key, scale, rootDeg, cfg.bassOctave),
           velocity: (0.5 + 0.2 * norm.complexity) * sGain,
           instrument: cfg.bass,
-          pan: 0
+          pan: 0,
+          layer: "bass"
         });
         if (rng() < (0.25 + 0.4 * percBoost) * dens && !isOutro) {
           events.push({
@@ -1091,7 +1107,8 @@
             pitch: degreeToMidi(key, scale, rootDeg + (rng() < 0.5 ? 4 : 2), cfg.bassOctave),
             velocity: (0.4 + 0.15 * norm.complexity) * sGain,
             instrument: cfg.bass,
-            pan: 0
+            pan: 0,
+            layer: "bass"
           });
         }
         if (isBody && bar % 2 === 0) {
@@ -1120,7 +1137,8 @@
               pitch,
               velocity: clamp((baseVel + accent) * sGain, 0.05, 1),
               instrument: melodyInstr,
-              pan: clamp(lean * 0.2, -0.4, 0.4)
+              pan: clamp(lean * 0.2, -0.4, 0.4),
+              layer: "melody"
             });
             if (ORNAMENTED.has(melodyInstr) && mode !== "analytical" && t >= beat / 4) {
               if (rng() < 0.3) {
@@ -1130,7 +1148,8 @@
                   pitch: degreeToMidi(key, scale, transpose + motif.degrees[degIdx] + 1, cfg.melodyOctave),
                   velocity: clamp((baseVel - 0.2) * sGain, 0.05, 1),
                   instrument: melodyInstr,
-                  pan: clamp(lean * 0.2, -0.4, 0.4)
+                  pan: clamp(lean * 0.2, -0.4, 0.4),
+                  layer: "melody"
                 });
               }
             }
@@ -1141,7 +1160,8 @@
                 pitch: degreeToMidi(key, scale, transpose + motif.degrees[degIdx] + 2, cfg.melodyOctave),
                 velocity: clamp((baseVel - 0.15) * sGain, 0.05, 1),
                 instrument: melodyInstr,
-                pan: clamp(lean * 0.2 + 0.2, -0.6, 0.6)
+                pan: clamp(lean * 0.2 + 0.2, -0.6, 0.6),
+                layer: "melody"
               });
             }
           }
@@ -1153,7 +1173,8 @@
             pitch: degreeToMidi(key, scale, 0, cfg.melodyOctave),
             velocity: 0.5 * sGain,
             instrument: melodyInstr,
-            pan: 0
+            pan: 0,
+            layer: "melody"
           });
         }
         if (arpGate > 0.08 && !isOutro) {
@@ -1172,7 +1193,8 @@
               pitch: degreeToMidi(key, scale, rootDeg + arpDegrees[s % arpDegrees.length], cfg.arpOctave),
               velocity: clamp((0.28 + 0.2 * arpGate) * sGain, 0.05, 1),
               instrument: arpInstr,
-              pan: clamp(lean * 0.6 + (s % 2 === 0 ? -0.15 : 0.15), -1, 1)
+              pan: clamp(lean * 0.6 + (s % 2 === 0 ? -0.15 : 0.15), -1, 1),
+              layer: "arp"
             });
           }
         }
@@ -1184,7 +1206,8 @@
             pitch: degreeToMidi(key, scale, rootDeg + pick(rng, [4, 6, 7]), 6),
             velocity: 0.32 * sGain,
             instrument: bellInstr,
-            pan: clamp((rng() * 2 - 1) * 0.7, -1, 1)
+            pan: clamp((rng() * 2 - 1) * 0.7, -1, 1),
+            layer: "bell"
           });
         }
         if (cfg.perc === "drive" && isBody) {
@@ -1198,7 +1221,8 @@
                 pitch: 36,
                 velocity: 0.7 * sGain,
                 instrument: "kick",
-                pan: 0
+                pan: 0,
+                layer: "perc"
               });
             }
             if (hatPattern[s]) {
@@ -1208,7 +1232,8 @@
                 pitch: 90,
                 velocity: (onBeat ? 0.3 : 0.2) * sGain,
                 instrument: "hihat",
-                pan: 0.25
+                pan: 0.25,
+                layer: "perc"
               });
             }
           }
@@ -1222,7 +1247,8 @@
               pitch: 48,
               velocity: 0.3 * sGain,
               instrument: "perc",
-              pan: -0.2
+              pan: -0.2,
+              layer: "perc"
             });
           }
         } else if (cfg.perc === "cinematic" && b === 0 && !isIntro) {
@@ -1232,7 +1258,8 @@
             pitch: 33,
             velocity: 0.65 * sGain,
             instrument: "taiko",
-            pan: 0
+            pan: 0,
+            layer: "perc"
           });
           if (rng() < (0.3 + 0.5 * percBoost) * dens) {
             events.push({
@@ -1241,7 +1268,8 @@
               pitch: 55,
               velocity: 0.35 * sGain,
               instrument: "perc",
-              pan: 0.3
+              pan: 0.3,
+              layer: "perc"
             });
           }
         } else if (cfg.perc === "eastern" && isBody) {
@@ -1254,7 +1282,8 @@
               pitch: s === 0 ? 33 : 40,
               velocity: (s === 0 ? 0.6 : 0.4) * sGain,
               instrument: "taiko",
-              pan: s % 2 === 0 ? -0.15 : 0.15
+              pan: s % 2 === 0 ? -0.15 : 0.15,
+              layer: "perc"
             });
           }
         }
@@ -1799,6 +1828,223 @@
     }
   };
 
+  // src/viz/viz-core.ts
+  var LAYER_COLORS = {
+    pad: "#38bdf8",
+    // sky      — containers / sections
+    bass: "#f59e0b",
+    // amber   — structural roots
+    melody: "#a78bfa",
+    // violet — text content
+    arp: "#34d399",
+    // emerald  — links
+    bell: "#fbbf24",
+    // gold    — images
+    perc: "#f472b6"
+    // pink    — buttons / forms
+  };
+  var LAYER_LABELS = {
+    pad: "sections \u2192 pad",
+    bass: "structure \u2192 bass",
+    melody: "text \u2192 melody",
+    arp: "links \u2192 arpeggio",
+    bell: "images \u2192 bells",
+    perc: "buttons \u2192 percussion"
+  };
+  var LAYER_TAGS = {
+    arp: ["a"],
+    bell: ["img", "picture", "source", "svg", "figure", "video"],
+    perc: ["button", "input", "select", "form", "label", "textarea"],
+    melody: ["h1", "h2", "h3", "h4", "h5", "h6", "p", "li", "span", "strong", "em", "blockquote", "pre", "code", "td", "th"],
+    pad: ["div", "section", "article", "header", "nav", "aside", "figure"],
+    bass: ["html", "body", "main", "footer", "table", "ul", "ol"]
+  };
+  function assignTokens(events, tokens) {
+    const byLayer = {
+      pad: [],
+      bass: [],
+      melody: [],
+      arp: [],
+      bell: [],
+      perc: []
+    };
+    const all = [];
+    tokens.forEach((tok, i) => {
+      all.push(i);
+      for (const layer of Object.keys(LAYER_TAGS)) {
+        if (LAYER_TAGS[layer].includes(tok.tag)) byLayer[layer].push(i);
+      }
+    });
+    const counters = { pad: 0, bass: 0, melody: 0, arp: 0, bell: 0, perc: 0 };
+    let fallback = 0;
+    return events.map((ev) => {
+      const list = byLayer[ev.layer];
+      if (list.length > 0) {
+        const idx = list[counters[ev.layer] % list.length];
+        counters[ev.layer]++;
+        return idx;
+      }
+      if (all.length === 0) return -1;
+      return all[fallback++ % all.length];
+    });
+  }
+  var ROLL_BEHIND = 1.5;
+  var ROLL_AHEAD = 6.5;
+  function mountViz(opts) {
+    const { tokensEl, canvas, score, tokens, getPosition, isPlaying } = opts;
+    const events = score.events;
+    const assignment = assignTokens(events, tokens);
+    tokensEl.textContent = "";
+    const tokenSpans = tokens.map((tok) => {
+      const span = document.createElement("span");
+      span.className = "wse-tok";
+      span.textContent = `<${tok.tag}>`;
+      let owner = null;
+      for (const layer of Object.keys(LAYER_TAGS)) {
+        if (LAYER_TAGS[layer].includes(tok.tag)) {
+          owner = layer;
+          break;
+        }
+      }
+      if (owner) span.style.color = LAYER_COLORS[owner] + "88";
+      span.style.opacity = String(Math.max(0.45, 1 - tok.depth * 0.03));
+      tokensEl.appendChild(span);
+      return span;
+    });
+    const ctx2d = canvas.getContext("2d");
+    let nextIdx = 0;
+    let raf = 0;
+    let running = false;
+    const fired = /* @__PURE__ */ new Set();
+    const litTimeouts = [];
+    let lastScrollAt = 0;
+    function lightToken(evIdx, layer) {
+      const tIdx = assignment[evIdx];
+      if (tIdx < 0 || !tokenSpans[tIdx]) return;
+      const span = tokenSpans[tIdx];
+      span.classList.remove("lit");
+      void span.offsetWidth;
+      span.style.setProperty("--lit-color", LAYER_COLORS[layer]);
+      span.classList.add("lit", "played");
+      const now = performance.now();
+      if (now - lastScrollAt > 350) {
+        lastScrollAt = now;
+        const target = span.offsetTop - tokensEl.clientHeight / 2;
+        tokensEl.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+      }
+      const handle = window.setTimeout(() => span.classList.remove("lit"), 700);
+      litTimeouts.push(handle);
+    }
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+      }
+      ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    const pitches = events.map((e) => e.pitch);
+    const pitchLo = Math.min(...pitches, 36) - 2;
+    const pitchHi = Math.max(...pitches, 84) + 2;
+    const barDur = 60 / score.profile.bpm * 4;
+    function drawRoll(pos) {
+      resizeCanvas();
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      ctx2d.clearRect(0, 0, w, h);
+      const t0 = pos - ROLL_BEHIND;
+      const t1 = pos + ROLL_AHEAD;
+      const xOf = (t) => (t - t0) / (t1 - t0) * w;
+      const yOf = (p) => h - (p - pitchLo) / (pitchHi - pitchLo) * (h - 10) - 5;
+      const noteH = Math.max(3, (h - 10) / (pitchHi - pitchLo) + 2);
+      ctx2d.strokeStyle = "rgba(148, 163, 184, 0.12)";
+      ctx2d.lineWidth = 1;
+      for (let bar = Math.max(0, Math.floor(t0 / barDur)); bar * barDur < t1; bar++) {
+        const x = xOf(bar * barDur);
+        ctx2d.beginPath();
+        ctx2d.moveTo(x, 0);
+        ctx2d.lineTo(x, h);
+        ctx2d.stroke();
+      }
+      for (const [i, ev] of events.entries()) {
+        if (ev.time + ev.duration < t0 || ev.time > t1) continue;
+        const x = xOf(ev.time);
+        const wNote = Math.max(3, xOf(ev.time + ev.duration) - x - 1);
+        const y = yOf(ev.pitch);
+        const color = LAYER_COLORS[ev.layer];
+        const playing = ev.time <= pos && pos <= ev.time + ev.duration;
+        const played = ev.time <= pos;
+        ctx2d.globalAlpha = playing ? 1 : played ? 0.55 : 0.3 + 0.45 * ev.velocity;
+        ctx2d.fillStyle = color;
+        if (playing) {
+          ctx2d.shadowColor = color;
+          ctx2d.shadowBlur = 12;
+        }
+        ctx2d.beginPath();
+        ctx2d.roundRect(x, y - noteH / 2, wNote, noteH, 2);
+        ctx2d.fill();
+        ctx2d.shadowBlur = 0;
+        const age = pos - ev.time;
+        if (age >= 0 && age < 0.25 && fired.has(i)) {
+          ctx2d.globalAlpha = 1 - age / 0.25;
+          ctx2d.strokeStyle = "#ffffff";
+          ctx2d.lineWidth = 1.5;
+          ctx2d.beginPath();
+          ctx2d.roundRect(x - 2, y - noteH / 2 - 2, wNote + 4, noteH + 4, 3);
+          ctx2d.stroke();
+        }
+      }
+      ctx2d.globalAlpha = 1;
+      const px = xOf(pos);
+      const grad = ctx2d.createLinearGradient(px, 0, px, h);
+      grad.addColorStop(0, "rgba(56, 189, 248, 0.9)");
+      grad.addColorStop(1, "rgba(167, 139, 250, 0.9)");
+      ctx2d.strokeStyle = grad;
+      ctx2d.lineWidth = 2;
+      ctx2d.beginPath();
+      ctx2d.moveTo(px, 0);
+      ctx2d.lineTo(px, h);
+      ctx2d.stroke();
+    }
+    function frame() {
+      if (!running) return;
+      const pos = getPosition();
+      while (nextIdx < events.length && events[nextIdx].time <= pos) {
+        fired.add(nextIdx);
+        lightToken(nextIdx, events[nextIdx].layer);
+        nextIdx++;
+      }
+      drawRoll(pos);
+      if (!isPlaying() && nextIdx >= events.length) {
+        running = false;
+        return;
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    return {
+      start() {
+        if (running) return;
+        running = true;
+        raf = requestAnimationFrame(frame);
+      },
+      stop() {
+        running = false;
+        cancelAnimationFrame(raf);
+      },
+      reset() {
+        nextIdx = 0;
+        fired.clear();
+        for (const handle of litTimeouts) clearTimeout(handle);
+        litTimeouts.length = 0;
+        for (const span of tokenSpans) span.classList.remove("lit", "played");
+        tokensEl.scrollTo({ top: 0 });
+        drawRoll(0);
+      }
+    };
+  }
+
   // demo/demo.ts
   var engine = new WseAudioEngine();
   var variation = 0;
@@ -1828,6 +2074,19 @@
     const score = generateScore(features, fingerprint, currentOptions());
     return { features, fingerprint, score };
   }
+  var viz = null;
+  function renderVizLegend() {
+    const legend = $("viz-legend");
+    if (legend.childElementCount > 0) return;
+    for (const layer of Object.keys(LAYER_LABELS)) {
+      const key = document.createElement("span");
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.style.background = LAYER_COLORS[layer];
+      key.append(dot, LAYER_LABELS[layer]);
+      legend.appendChild(key);
+    }
+  }
   async function play() {
     const { features, fingerprint, score } = analyze();
     window.__wse = {
@@ -1845,6 +2104,19 @@
         out.textContent = "finished";
       }
     });
+    $("viz").classList.add("on");
+    renderVizLegend();
+    viz?.stop();
+    viz = mountViz({
+      tokensEl: $("tokens"),
+      canvas: $("roll"),
+      score,
+      tokens: features.tokens,
+      getPosition: () => engine.getState().position,
+      isPlaying: () => engine.getState().playing
+    });
+    window.__wseViz = viz;
+    viz.start();
     out.textContent = `${score.profile.keyName} \xB7 ${score.profile.bpm} BPM \xB7 ${score.profile.lengthSec}s \xB7 ${score.events.length} notes \xB7 ${score.profile.character}-led \xB7 #${fingerprint.hash}` + (variation > 0 ? ` \xB7 var ${variation}` : "");
   }
   $("play").addEventListener("click", () => {
@@ -1857,6 +2129,7 @@
   });
   $("stop").addEventListener("click", () => {
     void engine.stop();
+    viz?.stop();
     out.textContent = "stopped";
   });
   window.__wseAnalyze = analyze;

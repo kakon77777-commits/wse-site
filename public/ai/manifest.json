@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "WebCode Sonification Engine",
   "abbreviation": "WSE",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "browser-extension",
   "url": "https://wse.evemisstechnology.com/",
   "demo": "https://wse.evemisstechnology.com/demo/",

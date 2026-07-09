@@ -101,7 +101,7 @@
         <a class="btn" href="#how">How it works</a>
         <a class="btn" href="#get">Get the extension</a>
       </div>
-      <div class="pill"><i></i> v0.2.0 developer preview · open source (Apache-2.0) · local-only</div>
+      <div class="pill"><i></i> v0.3.0 developer preview · open source (Apache-2.0) · local-only</div>
     </div>
   </div>
 
@@ -124,6 +124,11 @@
           <h3>🔒 Local-only by design</h3>
           <p>No server, no telemetry. Analysis runs only when you click, only on the active tab. Form values and editable content are never read; query strings never enter the pipeline. Everything is synthesized — no samples, no downloads.</p>
           <span class="zh2">所有分析都在本機。絕不上傳頁面內容，絕不讀取表單值。</span>
+        </div>
+        <div class="card">
+          <h3>👁️ Visualizer — watch code become music</h3>
+          <p><b>New in v0.3.</b> The page's tags stream by like subtitles and light up the instant "their" note sounds — links flash on arpeggios, images on bells, buttons on percussion — while a piano-roll score scrolls under the playhead. Honest provenance: every note knows which structural layer created it. Try it in the <a href="/demo/">live demo</a>.</p>
+          <span class="zh2">看見程式碼變成音樂：被點到的 tag 發光、樂譜持續前進，每個音符都知道自己來自哪一層結構。</span>
         </div>
       </div>
     </div>
@@ -171,9 +176,9 @@
   <section class="alt" id="get">
     <div class="wrap">
       <h2>Get the extension</h2>
-      <p class="sub">v0.2.0 is a developer preview for Chrome (Manifest V3, permissions: <code>activeTab</code> · <code>scripting</code> · <code>storage</code> · <code>offscreen</code>). Open source on GitHub; Chrome Web Store listing is on the way.</p>
+      <p class="sub">v0.3.0 is a developer preview for Chrome (Manifest V3, permissions: <code>activeTab</code> · <code>scripting</code> · <code>storage</code> · <code>offscreen</code>). Open source on GitHub; Chrome Web Store listing is on the way.</p>
       <div class="cta" style="justify-content:flex-start; margin:0 0 22px">
-        <a class="btn primary" href="https://github.com/kakon77777-commits/webcode-sonification-engine/releases/latest">⬇ Download v0.2.0 (zip)</a>
+        <a class="btn primary" href="https://github.com/kakon77777-commits/webcode-sonification-engine/releases/latest">⬇ Download v0.3.0 (zip)</a>
         <a class="btn" href="https://github.com/kakon77777-commits/webcode-sonification-engine">GitHub — source &amp; docs</a>
       </div>
       <ol class="steps">
@@ -191,8 +196,9 @@
       <h2>Roadmap</h2>
       <p class="sub">未來擴充計畫 — where this is going.</p>
       <div class="road">
-        <div class="card"><b>v0.3</b><p>Scroll Mode (viewport as playhead) · Mutation Mode (live DOM becomes a live performance) · WAV export</p></div>
-        <div class="card"><b>v0.4</b><p>Custom mapping profiles · MIDI export · more instruments &amp; ornaments</p></div>
+        <div class="card"><b>v0.3 ✓</b><p>Visualizer — token stream + karaoke highlights + scrolling piano-roll score, with per-note provenance</p></div>
+        <div class="card"><b>v0.4</b><p>Scroll Mode (viewport as playhead) · Mutation Mode (live DOM becomes a live performance) · WAV export</p></div>
+        <div class="card"><b>v0.5</b><p>Custom mapping profiles · MIDI export · more instruments &amp; ornaments</p></div>
         <div class="card"><b>v1.0</b><p>Firefox · public mapping SDK · research dataset &amp; listening studies</p></div>
         <div class="card"><b>Research</b><p>Do sites form recognizable sound signatures? Can you name a site type by ear? Are redesigns audible?</p></div>
       </div>
