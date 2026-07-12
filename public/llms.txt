@@ -11,11 +11,13 @@ Prior art acknowledged with special thanks: "Synesthesia Add-on: a Tool for HTML
 - [Live demo](https://wse.evemisstechnology.com/demo/): the full pipeline running in-page — the page is its own score
 - [Machine-readable manifest](https://wse.evemisstechnology.com/ai/manifest.json)
 
-## Mapping (v0.4)
+## Mapping (v0.4.1)
 
 Visualizer: the extension's "Analyze & Visualize" opens a full-tab view where the page's element tokens light up as "their" notes sound (links → arpeggio, images → bells, buttons → percussion) above a scrolling piano-roll score; every NoteEvent carries the mapping layer that generated it. Subtrees marked data-wse-ignore are excluded from extraction.
 
-New in v0.4 — three playback modes, selectable in the popup: Auto (real-time clock, default), Scroll (the page's scroll position drives the timeline — scrolling forward triggers notes, scrolling back is silent until you scroll forward past them again), and Live (a quiet ambient bed loops while the page's own DOM mutations — nodes added/removed, attributes changed — play reactive notes on top, rate-limited to ≤10 events/second). Export WAV renders the current score offline through the identical synthesis graph used for live playback and downloads a standard 16-bit PCM file, entirely client-side.
+Three playback modes, selectable in the popup: Auto (real-time clock, default), Scroll (the page's scroll position drives the timeline — scrolling forward triggers notes, scrolling back is silent until you scroll forward past them again), and Live (a quiet ambient bed loops while the page's own DOM mutations — nodes added/removed, attributes changed — play reactive notes on top, rate-limited to ≤10 events/second). Export WAV renders the current score offline through the identical synthesis graph used for live playback and downloads a standard 16-bit PCM file, entirely client-side.
+
+New in v0.4.1 — sound design pass: every sustained/melodic voice now has a filter envelope (brightness moves through the note instead of a static cutoff); the procedural reverb gained a pre-delay, sparse early reflections and a progressively darkening tail; the master bus adds a warmth/air EQ and a soft-knee saturator ahead of the compressor. Five new instruments — clarinet, marimba, 箏/koto, subbass, choir — wired into the orchestration palette (23 instruments total).
 - Tag diversity + node count → tempo (52–176 BPM)
 - Average CSS hue → key; lightness × saturation → one of 7 scales
 - Dominant structural family (content/navigation/media/form) → lead & arpeggio instruments

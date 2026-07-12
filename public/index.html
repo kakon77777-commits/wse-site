@@ -101,7 +101,7 @@
         <a class="btn" href="#how">How it works</a>
         <a class="btn" href="#get">Get the extension</a>
       </div>
-      <div class="pill"><i></i> v0.4.0 developer preview · open source (Apache-2.0) · local-only</div>
+      <div class="pill"><i></i> v0.4.1 developer preview · open source (Apache-2.0) · local-only</div>
     </div>
   </div>
 
@@ -170,25 +170,25 @@
 
   <section>
     <div class="wrap">
-      <h2>Five styles, one identity</h2>
+      <h2>Five styles, 23 instruments, one identity</h2>
       <p class="sub">A style is a palette, not a skin — it changes articulation, register and rhythm roles. The page decides which voices inside the palette actually play. Tune everything with sliders: tempo, density, brightness, reverb.</p>
       <div class="chips">
-        <span class="chip"><b>Ambient</b> · pads, e-piano, bells</span>
-        <span class="chip"><b>Piano</b> · piano, guitar, strings</span>
-        <span class="chip"><b>Electronic</b> · leads, kicks, hats</span>
-        <span class="chip"><b>Orchestral</b> · strings, brass, taiko</span>
-        <span class="chip"><b>Eastern 東方</b> · 蕭 xiao, 笛 flute, 太鼓 taiko, guitar</span>
+        <span class="chip"><b>Ambient</b> · pads, e-piano, bells, choir</span>
+        <span class="chip"><b>Piano</b> · piano, guitar, strings, clarinet</span>
+        <span class="chip"><b>Electronic</b> · leads, kicks, hats, subbass</span>
+        <span class="chip"><b>Orchestral</b> · strings, brass, taiko, marimba</span>
+        <span class="chip"><b>Eastern 東方</b> · 蕭 xiao, 笛 flute, 太鼓 taiko, 箏 koto, guitar</span>
       </div>
-      <p class="note">All instruments are pure Web Audio synthesis — including a Karplus-Strong plucked-string guitar and breath-modeled xiao and flute. No sample libraries, nothing to download.</p>
+      <p class="note">All instruments are pure Web Audio synthesis — Karplus-Strong plucked strings (guitar, koto), breath-modeled winds (xiao, flute, clarinet), inharmonic mallet percussion (marimba), and a formant-filtered vocal pad (choir). No sample libraries, nothing to download. <b>New in v0.4.1:</b> every sustained voice has a filter envelope that moves brightness through the note, the procedural reverb gained a pre-delay and a darkening tail, and the master bus adds a warmth/air EQ plus a soft-knee saturator ahead of the compressor.</p>
     </div>
   </section>
 
   <section class="alt" id="get">
     <div class="wrap">
       <h2>Get the extension</h2>
-      <p class="sub">v0.4.0 is a developer preview for Chrome (Manifest V3, permissions: <code>activeTab</code> · <code>scripting</code> · <code>storage</code> · <code>offscreen</code>). Open source on GitHub; Chrome Web Store listing is on the way.</p>
+      <p class="sub">v0.4.1 is a developer preview for Chrome (Manifest V3, permissions: <code>activeTab</code> · <code>scripting</code> · <code>storage</code> · <code>offscreen</code>). Open source on GitHub; Chrome Web Store listing is on the way.</p>
       <div class="cta" style="justify-content:flex-start; margin:0 0 22px">
-        <a class="btn primary" href="https://github.com/kakon77777-commits/webcode-sonification-engine/releases/latest">⬇ Download v0.4.0 (zip)</a>
+        <a class="btn primary" href="https://github.com/kakon77777-commits/webcode-sonification-engine/releases/latest">⬇ Download v0.4.1 (zip)</a>
         <a class="btn" href="https://github.com/kakon77777-commits/webcode-sonification-engine">GitHub — source &amp; docs</a>
       </div>
       <ol class="steps">
@@ -208,7 +208,8 @@
       <div class="road">
         <div class="card"><b>v0.3 ✓</b><p>Visualizer — token stream + karaoke highlights + scrolling piano-roll score, with per-note provenance</p></div>
         <div class="card"><b>v0.4 ✓</b><p>Scroll Mode (viewport as playhead) · Live Mode (DOM changes become a live performance) · WAV export</p></div>
-        <div class="card"><b>v0.5</b><p>Custom mapping profiles · MIDI export · more instruments &amp; ornaments</p></div>
+        <div class="card"><b>v0.4.1 ✓</b><p>Sound design pass — filter envelopes, redesigned reverb, master-bus EQ/saturation · 5 new instruments (clarinet, marimba, koto, subbass, choir)</p></div>
+        <div class="card"><b>v0.5</b><p>Custom mapping profiles · MIDI export</p></div>
         <div class="card"><b>v1.0</b><p>Firefox · public mapping SDK · research dataset &amp; listening studies</p></div>
         <div class="card"><b>Research</b><p>Do sites form recognizable sound signatures? Can you name a site type by ear? Are redesigns audible?</p></div>
       </div>
