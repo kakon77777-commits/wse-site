@@ -45,13 +45,21 @@
       100% { background: transparent; box-shadow: 0 0 0 transparent; transform: scale(1); }
     }
     #roll { display: block; width: 100%; height: 170px; background: #090f1d; border-top: 1px solid #1e293b; }
+    /* Live Mode feed */
+    #liveFeed { display: none; border-bottom: 1px solid #334155; background: #0b1120; padding: 10px 24px 14px; }
+    #liveFeed.on { display: block; }
+    #liveFeed h4 { font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+    #liveLog { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
+    #liveLog span { font-family: ui-monospace, Consolas, monospace; font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid #334155; color: #94a3b8; animation: livepop .6s ease-out; }
+    @keyframes livepop { 0% { transform: scale(1.15); border-color: #38bdf8; color: #fff; } 100% { transform: scale(1); } }
   </style>
 </head>
 <body>
-  <div id="panel">
+  <div id="panel" data-wse-ignore>
     <button id="play" class="primary">▶ Analyze &amp; Play This Page</button>
     <button id="stop">■ Stop</button>
     <button id="regen">↻ Regenerate</button>
+    <button id="exportWav" disabled>⬇ Export WAV</button>
     <select id="style">
       <option value="ambient" selected>Ambient</option>
       <option value="piano">Piano</option>
@@ -63,6 +71,11 @@
       <option value="hybrid" selected>Hybrid</option>
       <option value="musical">Musical</option>
       <option value="analytical">Analytical</option>
+    </select>
+    <select id="playback" title="Auto: real-time clock. Scroll: your scroll position is the playhead. Live: DOM changes drive the music.">
+      <option value="auto" selected>Auto</option>
+      <option value="scroll">Scroll = playhead</option>
+      <option value="live">Live = DOM changes</option>
     </select>
     <span class="knob">Tempo <input type="range" id="s-tempo" min="-30" max="30" step="1" value="0"></span>
     <span class="knob">Density <input type="range" id="s-density" min="50" max="150" step="5" value="100"></span>
@@ -76,6 +89,11 @@
     <div id="viz-legend"></div>
     <div id="tokens"></div>
     <canvas id="roll"></canvas>
+  </div>
+
+  <div id="liveFeed" data-wse-ignore>
+    <h4>Live performance · the page's own DOM changes are playing</h4>
+    <div id="liveLog"></div>
   </div>
 
   <header>
@@ -111,9 +129,11 @@
       space. The music grammar layer quantizes everything into a listenable score.</p>
       <pre>W → F(W) → Z → S_W → Θ → Q → A</pre>
       <p>Buttons below exist purely to raise this page's button density — which the mapping turns
-      into percussion presence.</p>
-      <button>Percussion +1</button><button>Percussion +2</button><button>Percussion +3</button>
-      <button>Percussion +4</button><button>Percussion +5</button><button>Percussion +6</button>
+      into percussion presence. In <b>Live Mode</b> they also toggle a real DOM node, so clicking
+      one is literally adding or removing an element — try it while Live Mode is playing.</p>
+      <button class="mutate-btn">Percussion +1</button><button class="mutate-btn">Percussion +2</button><button class="mutate-btn">Percussion +3</button>
+      <button class="mutate-btn">Percussion +4</button><button class="mutate-btn">Percussion +5</button><button class="mutate-btn">Percussion +6</button>
+      <span id="mutateSlots"></span>
     </section>
 
     <section id="gallery">
@@ -151,7 +171,7 @@
   </main>
 
   <footer id="contact">
-    <p>WebCode Sonification Engine v0.3 — open source, Apache-2.0. Concept and project direction: Neo.K (EveMissLab).</p>
+    <p>WebCode Sonification Engine v0.4 — open source, Apache-2.0. Concept and project direction: Neo.K (EveMissLab).</p>
     <p>🙏 With gratitude to the pioneer: <a href="https://github.com/rppbodo/synesthesia-addon" style="color:#7dd3fc">Synesthesia Add-on — a Tool for HTML Sonification</a> (Brazilian Symposium on Computer Music, 2017).</p>
     <p>The web was never silent.</p>
   </footer>

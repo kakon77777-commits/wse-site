@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "WebCode Sonification Engine",
   "abbreviation": "WSE",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "browser-extension",
   "url": "https://wse.evemisstechnology.com/",
   "demo": "https://wse.evemisstechnology.com/demo/",
@@ -33,9 +33,15 @@
     "scales": ["major", "minor", "pentatonic", "minorPentatonic", "dorian", "lydian", "mixolydian"],
     "styles": ["ambient", "piano", "electronic", "orchestral", "eastern"],
     "instruments": ["pad", "lowpad", "strings", "piano", "epiano", "pluck", "bell", "mallet", "bass", "brass", "lead", "flute", "xiao", "guitar", "kick", "hihat", "perc", "taiko"],
-    "limits": { "max_voices": 12, "max_events_per_second": 20 },
+    "limits": { "max_voices": 12, "max_events_per_second": 20, "live_mode_max_events_per_second": 10 },
     "length_seconds": [30, 90]
   },
+  "playback_modes": {
+    "auto": "real-time clock (default)",
+    "scroll": "the page's scroll position drives the timeline (§45)",
+    "live": "the page's DOM mutations drive a live performance over a looping ambient bed (§29-31)"
+  },
+  "export": { "wav": "offline render through the live-playback synthesis graph, client-side, 16-bit PCM" },
   "status": "developer-preview",
   "repository": "https://github.com/kakon77777-commits/webcode-sonification-engine",
   "distribution": {

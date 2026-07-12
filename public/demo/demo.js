@@ -1366,6 +1366,61 @@
     }
   };
 
+  // src/audio/scroll-scheduler.ts
+  function lowerBound(events, time) {
+    let lo = 0;
+    let hi = events.length;
+    while (lo < hi) {
+      const mid = lo + hi >> 1;
+      if (events[mid].time <= time) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  }
+  function thinBurst(batch, cap) {
+    if (batch.length <= cap || cap <= 0) return [...batch];
+    const step = batch.length / cap;
+    const out2 = [];
+    for (let i = 0; i < cap; i++) out2.push(batch[Math.floor(i * step)]);
+    return out2;
+  }
+  var SCROLL_BURST_CAP = 24;
+  var ScrollScheduler = class {
+    constructor(events, onTrigger, burstCap = SCROLL_BURST_CAP) {
+      this.events = events;
+      this.onTrigger = onTrigger;
+      this.burstCap = burstCap;
+    }
+    lastTime = 0;
+    idx = 0;
+    /** Current score-time position, in seconds. */
+    position() {
+      return this.lastTime;
+    }
+    /** Move to a new score-time position (seconds), triggering any notes crossed while moving forward. */
+    setTime(newTime) {
+      if (newTime > this.lastTime) {
+        const batch = [];
+        while (this.idx < this.events.length && this.events[this.idx].time <= newTime) {
+          batch.push(this.events[this.idx]);
+          this.idx++;
+        }
+        for (const ev of thinBurst(batch, this.burstCap)) this.onTrigger(ev);
+      } else if (newTime < this.lastTime) {
+        this.idx = lowerBound(this.events, newTime);
+      }
+      this.lastTime = newTime;
+    }
+    reset() {
+      this.lastTime = 0;
+      this.idx = 0;
+    }
+  };
+  function scrollFraction(scrollY, scrollHeight, clientHeight) {
+    const max = Math.max(1, scrollHeight - clientHeight);
+    return Math.max(0, Math.min(1, scrollY / max));
+  }
+
   // src/audio/instruments.ts
   var REVERB_SEND = {
     pad: 0.5,
@@ -1394,12 +1449,17 @@
     return 440 * Math.pow(2, (midi - 69) / 12);
   }
   var noiseCache = /* @__PURE__ */ new WeakMap();
+  var noiseSeeds = /* @__PURE__ */ new WeakMap();
+  function setNoiseSeed(ctx, seed) {
+    noiseSeeds.set(ctx, seed);
+  }
   function noiseBuffer(ctx) {
     let buf = noiseCache.get(ctx);
     if (!buf) {
+      const rng = mulberry32((noiseSeeds.get(ctx) ?? 0) ^ 625341585);
       buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const data = buf.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      for (let i = 0; i < data.length; i++) data[i] = rng() * 2 - 1;
       noiseCache.set(ctx, buf);
     }
     return buf;
@@ -1740,49 +1800,187 @@
     builder(ctx, env, ev, when, brightScale(dest));
   }
 
-  // src/audio/engine.ts
-  function makeImpulseResponse(ctx) {
+  // src/audio/impulse.ts
+  function dampedNoiseSamples(len, seed) {
+    const rng = mulberry32(seed);
+    const out2 = new Float32Array(len);
+    for (let i = 0; i < len; i++) {
+      out2[i] = (rng() * 2 - 1) * Math.pow(1 - i / len, 2.4);
+    }
+    return out2;
+  }
+
+  // src/audio/graph.ts
+  function makeImpulseResponse(ctx, seed) {
     const seconds = 1.8;
     const rate = ctx.sampleRate;
     const len = Math.floor(seconds * rate);
     const buf = ctx.createBuffer(2, len, rate);
-    for (let ch = 0; ch < 2; ch++) {
-      const data = buf.getChannelData(ch);
-      for (let i = 0; i < len; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4);
-      }
-    }
+    buf.getChannelData(0).set(dampedNoiseSamples(len, seed));
+    buf.getChannelData(1).set(dampedNoiseSamples(len, (seed ^ 2654435769) >>> 0));
     return buf;
   }
+  function buildMasterGraph(ctx, opts = {}) {
+    setNoiseSeed(ctx, opts.seed ?? 0);
+    const master = ctx.createGain();
+    master.gain.value = 0.75;
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -18;
+    compressor.knee.value = 12;
+    compressor.ratio.value = 3;
+    compressor.attack.value = 0.01;
+    compressor.release.value = 0.2;
+    master.connect(compressor);
+    compressor.connect(ctx.destination);
+    const reverb = ctx.createConvolver();
+    reverb.buffer = makeImpulseResponse(ctx, opts.seed ?? 0);
+    const reverbReturn = ctx.createGain();
+    reverbReturn.gain.value = 0.15 + 1.3 * (opts.reverb ?? 0.5);
+    reverb.connect(reverbReturn);
+    reverbReturn.connect(master);
+    const dest = { dry: master, reverb, brightness: opts.brightness ?? 0.5 };
+    return { master, dest };
+  }
+
+  // src/mapping/layer-tags.ts
+  var LAYER_TAGS = {
+    arp: ["a"],
+    bell: ["img", "picture", "source", "svg", "figure", "video"],
+    perc: ["button", "input", "select", "form", "label", "textarea"],
+    melody: [
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "p",
+      "li",
+      "span",
+      "strong",
+      "em",
+      "blockquote",
+      "pre",
+      "code",
+      "td",
+      "th"
+    ],
+    pad: ["div", "section", "article", "header", "nav", "aside", "figure"],
+    bass: ["html", "body", "main", "footer", "table", "ul", "ol"]
+  };
+  var TAG_TO_LAYER = /* @__PURE__ */ new Map();
+  for (const [layer, tags] of Object.entries(LAYER_TAGS)) {
+    for (const tag of tags) TAG_TO_LAYER.set(tag, layer);
+  }
+  function layerForTag(tag) {
+    return TAG_TO_LAYER.get(tag) ?? null;
+  }
+
+  // src/mapping/live.ts
+  var LIVE_INSTRUMENT = {
+    arp: "pluck",
+    bell: "bell",
+    perc: "perc",
+    melody: "mallet",
+    pad: "pluck",
+    bass: "mallet"
+  };
+  var BASE_VELOCITY = {
+    add: 0.55,
+    remove: 0.3,
+    attr: 0.15
+  };
+  var DURATION = {
+    add: 0.22,
+    remove: 0.35,
+    attr: 0.08
+  };
+  function mutationToNote(kind, tag, profile, rng) {
+    const layer = layerForTag(tag) ?? "melody";
+    const instrument = LIVE_INSTRUMENT[layer];
+    const degree = Math.floor(rng() * 8) - 2;
+    const octave = kind === "remove" ? 3 : 4;
+    const raw = degreeToMidi(profile.key, profile.scale, degree, octave);
+    const pitch = clampMidi(quantizePitch(raw, profile.key, profile.scale));
+    return {
+      time: 0,
+      duration: DURATION[kind],
+      pitch,
+      velocity: BASE_VELOCITY[kind] * (0.7 + 0.3 * rng()),
+      instrument,
+      pan: rng() * 2 - 1,
+      layer
+    };
+  }
+  function buildAmbientBed(profile) {
+    const chordDegrees = [0, 2, 4];
+    const pads = chordDegrees.map((deg, i) => ({
+      time: 0,
+      duration: 3.6,
+      pitch: degreeToMidi(profile.key, profile.scale, deg, 3),
+      velocity: 0.16,
+      instrument: "pad",
+      pan: (i - 1) * 0.3,
+      layer: "pad"
+    }));
+    const bass = {
+      time: 0,
+      duration: 3.6,
+      pitch: degreeToMidi(profile.key, profile.scale, 0, 1),
+      velocity: 0.32,
+      instrument: "bass",
+      pan: 0,
+      layer: "bass"
+    };
+    return [...pads, bass];
+  }
+  var LiveRateLimiter = class {
+    constructor(maxPerSecond, nowMs = () => Date.now()) {
+      this.maxPerSecond = maxPerSecond;
+      this.nowMs = nowMs;
+    }
+    windowStart = 0;
+    count = 0;
+    /** Returns true (and records the event) if under the cap; false if it should be dropped. */
+    tryAdmit() {
+      const now = this.nowMs();
+      if (now - this.windowStart >= 1e3) {
+        this.windowStart = now;
+        this.count = 0;
+      }
+      if (this.count >= this.maxPerSecond) return false;
+      this.count++;
+      return true;
+    }
+  };
+  var LIVE_MAX_EVENTS_PER_SECOND = 10;
+
+  // src/audio/engine.ts
   var WseAudioEngine = class {
     ctx = null;
     scheduler = null;
+    scrollScheduler = null;
     master = null;
     currentScore = null;
     onEnded = null;
+    // Mutation Mode (§29–31, §40 Layer C "Performance") — no fixed timeline, so
+    // it gets its own small state slice instead of a scheduler.
+    liveInterval = null;
+    liveDest = null;
+    liveRateLimiter = null;
+    liveRng = null;
+    liveStartCtxTime = 0;
     async play(score, opts = {}) {
       await this.stop();
       const ctx = new AudioContext();
       this.ctx = ctx;
       this.onEnded = opts.onEnded ?? null;
-      const master = ctx.createGain();
-      master.gain.value = 0.75;
-      const compressor = ctx.createDynamicsCompressor();
-      compressor.threshold.value = -18;
-      compressor.knee.value = 12;
-      compressor.ratio.value = 3;
-      compressor.attack.value = 0.01;
-      compressor.release.value = 0.2;
-      master.connect(compressor);
-      compressor.connect(ctx.destination);
+      const { master, dest } = buildMasterGraph(ctx, {
+        brightness: opts.brightness,
+        reverb: opts.reverb,
+        seed: score.fingerprint.seed
+      });
       this.master = master;
-      const reverb = ctx.createConvolver();
-      reverb.buffer = makeImpulseResponse(ctx);
-      const reverbReturn = ctx.createGain();
-      reverbReturn.gain.value = 0.15 + 1.3 * (opts.reverb ?? 0.5);
-      reverb.connect(reverbReturn);
-      reverbReturn.connect(master);
-      const dest = { dry: master, reverb, brightness: opts.brightness ?? 0.5 };
       if (ctx.state === "suspended") {
         await ctx.resume();
       }
@@ -1800,9 +1998,98 @@
       this.scheduler = scheduler;
       scheduler.start(ctx.currentTime + 0.15);
     }
+    /**
+     * Scroll Mode (§45, "Scrolling Page = Vertical Score"): builds the audio
+     * graph but does not auto-advance. Drive it with setScrollFraction() as
+     * the analyzed page scrolls — the score's own timeline never runs on a
+     * real-time clock in this mode.
+     */
+    async startScrollMode(score, opts = {}) {
+      await this.stop();
+      const ctx = new AudioContext();
+      this.ctx = ctx;
+      this.onEnded = opts.onEnded ?? null;
+      const { master, dest } = buildMasterGraph(ctx, {
+        brightness: opts.brightness,
+        reverb: opts.reverb,
+        seed: score.fingerprint.seed
+      });
+      this.master = master;
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      this.currentScore = score;
+      this.scrollScheduler = new ScrollScheduler(
+        score.events,
+        (ev) => playNote(ctx, dest, ev, ctx.currentTime + 0.01)
+      );
+    }
+    /** Drive Scroll Mode. fraction is the page's scroll position in [0, 1]. */
+    setScrollFraction(fraction) {
+      if (!this.scrollScheduler || !this.currentScore) return;
+      const clamped = Math.max(0, Math.min(1, fraction));
+      this.scrollScheduler.setTime(clamped * this.currentScore.profile.lengthSec);
+    }
+    /**
+     * Mutation Mode (§29–31): the page's own DOM changes become a live
+     * performance. Loops a quiet ambient bed (from the profile's key/scale/
+     * tempo — Layer A "Identity") so a quiet page never reads as broken;
+     * feed real activity in via triggerMutations() as it happens (Layer C).
+     */
+    async startLiveMode(score, opts = {}) {
+      await this.stop();
+      const ctx = new AudioContext();
+      this.ctx = ctx;
+      this.onEnded = opts.onEnded ?? null;
+      const { master, dest } = buildMasterGraph(ctx, {
+        brightness: opts.brightness,
+        reverb: opts.reverb,
+        seed: score.fingerprint.seed
+      });
+      this.master = master;
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      this.currentScore = score;
+      this.liveDest = dest;
+      this.liveRateLimiter = new LiveRateLimiter(LIVE_MAX_EVENTS_PER_SECOND);
+      this.liveRng = mulberry32(score.fingerprint.seed);
+      this.liveStartCtxTime = ctx.currentTime;
+      const beat = 60 / score.profile.bpm;
+      const barDur = beat * 4;
+      const bed = buildAmbientBed(score.profile);
+      const scheduleBar = (barStart) => {
+        for (const ev of bed) playNote(ctx, dest, ev, barStart + ev.time);
+      };
+      scheduleBar(ctx.currentTime + 0.1);
+      this.liveInterval = setInterval(() => scheduleBar(ctx.currentTime + 0.05), barDur * 1e3);
+    }
+    /** Feed a batch of DOM mutations into the running live performance (no-op unless startLiveMode() is active). */
+    triggerMutations(batch) {
+      if (!this.ctx || !this.liveDest || !this.liveRateLimiter || !this.liveRng || !this.currentScore) return;
+      const ctx = this.ctx;
+      const dest = this.liveDest;
+      const rateLimiter = this.liveRateLimiter;
+      const rng = this.liveRng;
+      const profile = this.currentScore.profile;
+      const admit = (kind, tag) => {
+        if (!rateLimiter.tryAdmit()) return;
+        const note = mutationToNote(kind, tag, profile, rng);
+        playNote(ctx, dest, note, ctx.currentTime + 0.01);
+      };
+      for (const tag of batch.added) admit("add", tag);
+      for (const tag of batch.removed) admit("remove", tag);
+      for (const tag of batch.attrChanged) admit("attr", tag);
+    }
     async stop() {
       this.scheduler?.stop();
       this.scheduler = null;
+      this.scrollScheduler = null;
+      if (this.liveInterval !== null) clearInterval(this.liveInterval);
+      this.liveInterval = null;
+      this.liveDest = null;
+      this.liveRateLimiter = null;
+      this.liveRng = null;
       this.currentScore = null;
       const ctx = this.ctx;
       const master = this.master;
@@ -1820,6 +2107,12 @@
       }
     }
     getState() {
+      if (this.scrollScheduler) {
+        return { playing: this.ctx !== null, position: this.scrollScheduler.position() };
+      }
+      if (this.liveInterval !== null && this.ctx) {
+        return { playing: true, position: this.ctx.currentTime - this.liveStartCtxTime };
+      }
       if (!this.ctx || !this.scheduler) return { playing: false, position: 0 };
       return { playing: true, position: this.scheduler.position() };
     }
@@ -1827,6 +2120,90 @@
       return this.currentScore;
     }
   };
+
+  // src/audio/render-offline.ts
+  var LEAD_IN_SEC = 0.05;
+  var TAIL_SEC2 = 3;
+  async function renderScoreOffline(score, opts = {}) {
+    const sampleRate = opts.sampleRate ?? 44100;
+    const totalSec = score.profile.lengthSec + LEAD_IN_SEC + TAIL_SEC2;
+    const ctx = new OfflineAudioContext(2, Math.ceil(totalSec * sampleRate), sampleRate);
+    const { dest } = buildMasterGraph(ctx, {
+      brightness: opts.brightness,
+      reverb: opts.reverb,
+      seed: score.fingerprint.seed
+    });
+    for (const ev of score.events) {
+      playNote(ctx, dest, ev, ev.time + LEAD_IN_SEC);
+    }
+    return ctx.startRendering();
+  }
+
+  // src/audio/wav-encode.ts
+  function floatTo16BitPCM(sample) {
+    const s = Math.max(-1, Math.min(1, sample));
+    return s < 0 ? Math.round(s * 32768) : Math.round(s * 32767);
+  }
+  function writeAscii(view, offset, str) {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  }
+  function encodeWavFromChannels(channels, sampleRate) {
+    const numChannels = Math.max(1, channels.length);
+    const numFrames = channels[0]?.length ?? 0;
+    const bytesPerSample = 2;
+    const blockAlign = numChannels * bytesPerSample;
+    const dataSize = numFrames * blockAlign;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+    writeAscii(view, 0, "RIFF");
+    view.setUint32(4, 36 + dataSize, true);
+    writeAscii(view, 8, "WAVE");
+    writeAscii(view, 12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeAscii(view, 36, "data");
+    view.setUint32(40, dataSize, true);
+    let offset = 44;
+    for (let i = 0; i < numFrames; i++) {
+      for (let ch = 0; ch < numChannels; ch++) {
+        view.setInt16(offset, floatTo16BitPCM(channels[ch][i] ?? 0), true);
+        offset += 2;
+      }
+    }
+    return buffer;
+  }
+  function encodeWav(buffer) {
+    const channels = [];
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
+    return encodeWavFromChannels(channels, buffer.sampleRate);
+  }
+
+  // src/audio/export-wav.ts
+  function wavFilename(score) {
+    const variant = score.variation > 0 ? `-v${score.variation}` : "";
+    return `wse-${score.fingerprint.hash}-${score.profile.style}${variant}.wav`;
+  }
+  async function exportScoreAsWav(score, opts = {}) {
+    const buffer = await renderScoreOffline(score, opts);
+    const wav = encodeWav(buffer);
+    const blob = new Blob([wav], { type: "audio/wav" });
+    const url = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = wavFilename(score);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 1e4);
+    }
+  }
 
   // src/viz/viz-core.ts
   var LAYER_COLORS = {
@@ -1850,14 +2227,6 @@
     arp: "links \u2192 arpeggio",
     bell: "images \u2192 bells",
     perc: "buttons \u2192 percussion"
-  };
-  var LAYER_TAGS = {
-    arp: ["a"],
-    bell: ["img", "picture", "source", "svg", "figure", "video"],
-    perc: ["button", "input", "select", "form", "label", "textarea"],
-    melody: ["h1", "h2", "h3", "h4", "h5", "h6", "p", "li", "span", "strong", "em", "blockquote", "pre", "code", "td", "th"],
-    pad: ["div", "section", "article", "header", "nav", "aside", "figure"],
-    bass: ["html", "body", "main", "footer", "table", "ul", "ol"]
   };
   function assignTokens(events, tokens) {
     const byLayer = {
@@ -1913,6 +2282,7 @@
     });
     const ctx2d = canvas.getContext("2d");
     let nextIdx = 0;
+    let lastPos = 0;
     let raf = 0;
     let running = false;
     const fired = /* @__PURE__ */ new Set();
@@ -2011,11 +2381,16 @@
     function frame() {
       if (!running) return;
       const pos = getPosition();
-      while (nextIdx < events.length && events[nextIdx].time <= pos) {
-        fired.add(nextIdx);
-        lightToken(nextIdx, events[nextIdx].layer);
-        nextIdx++;
+      if (pos > lastPos) {
+        while (nextIdx < events.length && events[nextIdx].time <= pos) {
+          fired.add(nextIdx);
+          lightToken(nextIdx, events[nextIdx].layer);
+          nextIdx++;
+        }
+      } else if (pos < lastPos) {
+        nextIdx = lowerBound(events, pos);
       }
+      lastPos = pos;
       drawRoll(pos);
       if (!isPlaying() && nextIdx >= events.length) {
         running = false;
@@ -2035,6 +2410,7 @@
       },
       reset() {
         nextIdx = 0;
+        lastPos = 0;
         fired.clear();
         for (const handle of litTimeouts) clearTimeout(handle);
         litTimeouts.length = 0;
@@ -2048,6 +2424,7 @@
   // demo/demo.ts
   var engine = new WseAudioEngine();
   var variation = 0;
+  var lastScore = null;
   var $ = (id) => document.getElementById(id);
   var out = $("out");
   function currentTuning() {
@@ -2075,6 +2452,90 @@
     return { features, fingerprint, score };
   }
   var viz = null;
+  var scrollListenerAttached = false;
+  function currentScrollFraction() {
+    const doc = document.documentElement;
+    return scrollFraction(window.scrollY, doc.scrollHeight, doc.clientHeight);
+  }
+  function attachScrollListener() {
+    if (scrollListenerAttached) return;
+    scrollListenerAttached = true;
+    window.addEventListener("scroll", onDemoScroll, { passive: true });
+  }
+  function detachScrollListener() {
+    if (!scrollListenerAttached) return;
+    scrollListenerAttached = false;
+    window.removeEventListener("scroll", onDemoScroll);
+  }
+  function onDemoScroll() {
+    engine.setScrollFraction(currentScrollFraction());
+  }
+  var mutationObserver = null;
+  var liveFlushTimer = 0;
+  var liveAdded = [];
+  var liveRemoved = [];
+  var liveAttrChanged = [];
+  function ignoredForLive(node) {
+    const el = node instanceof Element ? node : node.parentElement;
+    return !!el?.closest("[data-wse-ignore]");
+  }
+  function pushLiveTag(list, el, cap = 30) {
+    if (list.length >= cap) return;
+    list.push(el.tagName.toLowerCase());
+  }
+  function logLiveEvent(kind, tag) {
+    const log = $("liveLog");
+    const layer = layerForTag(tag) ?? "melody";
+    const chip = document.createElement("span");
+    chip.style.borderColor = LAYER_COLORS[layer];
+    chip.textContent = `${kind === "add" ? "+" : kind === "remove" ? "\u2212" : "~"} <${tag}>`;
+    log.appendChild(chip);
+    while (log.children.length > 40) log.firstElementChild?.remove();
+    setTimeout(() => chip.remove(), 4e3);
+  }
+  function flushLiveBatch() {
+    liveFlushTimer = 0;
+    if (liveAdded.length === 0 && liveRemoved.length === 0 && liveAttrChanged.length === 0) return;
+    const batch = { added: liveAdded, removed: liveRemoved, attrChanged: liveAttrChanged };
+    liveAdded = [];
+    liveRemoved = [];
+    liveAttrChanged = [];
+    engine.triggerMutations(batch);
+    for (const tag of batch.added) logLiveEvent("add", tag);
+    for (const tag of batch.removed) logLiveEvent("remove", tag);
+    for (const tag of batch.attrChanged) logLiveEvent("attr", tag);
+  }
+  function startLiveObserver() {
+    stopLiveObserver();
+    mutationObserver = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === "childList") {
+          const containerIgnored = ignoredForLive(record.target);
+          for (const node of record.addedNodes) {
+            if (node instanceof Element && !ignoredForLive(node)) pushLiveTag(liveAdded, node);
+          }
+          for (const node of record.removedNodes) {
+            if (node instanceof Element && !containerIgnored) pushLiveTag(liveRemoved, node);
+          }
+        } else if (record.type === "attributes" && record.target instanceof Element && !ignoredForLive(record.target)) {
+          pushLiveTag(liveAttrChanged, record.target);
+        }
+      }
+      if (!liveFlushTimer) liveFlushTimer = window.setTimeout(flushLiveBatch, 120);
+    });
+    mutationObserver.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+  }
+  function stopLiveObserver() {
+    mutationObserver?.disconnect();
+    mutationObserver = null;
+    if (liveFlushTimer) {
+      clearTimeout(liveFlushTimer);
+      liveFlushTimer = 0;
+    }
+    liveAdded = [];
+    liveRemoved = [];
+    liveAttrChanged = [];
+  }
   function renderVizLegend() {
     const legend = $("viz-legend");
     if (legend.childElementCount > 0) return;
@@ -2089,6 +2550,7 @@
   }
   async function play() {
     const { features, fingerprint, score } = analyze();
+    lastScore = score;
     window.__wse = {
       features,
       fingerprint,
@@ -2097,27 +2559,47 @@
       eventCount: score.events.length
     };
     const tuning = currentTuning();
-    await engine.play(score, {
-      brightness: tuning.brightness,
-      reverb: tuning.reverb,
-      onEnded: () => {
-        out.textContent = "finished";
-      }
-    });
-    $("viz").classList.add("on");
-    renderVizLegend();
+    const driveMode = $("playback").value;
+    detachScrollListener();
+    stopLiveObserver();
+    $("liveFeed").classList.remove("on");
     viz?.stop();
-    viz = mountViz({
-      tokensEl: $("tokens"),
-      canvas: $("roll"),
-      score,
-      tokens: features.tokens,
-      getPosition: () => engine.getState().position,
-      isPlaying: () => engine.getState().playing
-    });
-    window.__wseViz = viz;
-    viz.start();
-    out.textContent = `${score.profile.keyName} \xB7 ${score.profile.bpm} BPM \xB7 ${score.profile.lengthSec}s \xB7 ${score.events.length} notes \xB7 ${score.profile.character}-led \xB7 #${fingerprint.hash}` + (variation > 0 ? ` \xB7 var ${variation}` : "");
+    $("viz").classList.remove("on");
+    if (driveMode === "scroll") {
+      await engine.startScrollMode(score, { brightness: tuning.brightness, reverb: tuning.reverb });
+      attachScrollListener();
+      engine.setScrollFraction(currentScrollFraction());
+    } else if (driveMode === "live") {
+      await engine.startLiveMode(score, { brightness: tuning.brightness, reverb: tuning.reverb });
+      $("liveLog").textContent = "";
+      $("liveFeed").classList.add("on");
+      startLiveObserver();
+    } else {
+      await engine.play(score, {
+        brightness: tuning.brightness,
+        reverb: tuning.reverb,
+        onEnded: () => {
+          out.textContent = "finished";
+        }
+      });
+    }
+    if (driveMode !== "live") {
+      $("viz").classList.add("on");
+      renderVizLegend();
+      viz = mountViz({
+        tokensEl: $("tokens"),
+        canvas: $("roll"),
+        score,
+        tokens: features.tokens,
+        getPosition: () => engine.getState().position,
+        isPlaying: () => engine.getState().playing
+      });
+      window.__wseViz = viz;
+      viz.start();
+    }
+    $("exportWav").disabled = false;
+    const modeSuffix = driveMode === "scroll" ? " \xB7 scroll to play" : driveMode === "live" ? " \xB7 live \u2014 change the page" : "";
+    out.textContent = `${score.profile.keyName} \xB7 ${score.profile.bpm} BPM \xB7 ${score.profile.lengthSec}s \xB7 ${score.events.length} notes \xB7 ${score.profile.character}-led \xB7 #${fingerprint.hash}` + (variation > 0 ? ` \xB7 var ${variation}` : "") + modeSuffix;
   }
   $("play").addEventListener("click", () => {
     variation = 0;
@@ -2129,8 +2611,41 @@
   });
   $("stop").addEventListener("click", () => {
     void engine.stop();
+    detachScrollListener();
+    stopLiveObserver();
+    $("liveFeed").classList.remove("on");
     viz?.stop();
     out.textContent = "stopped";
+  });
+  document.querySelectorAll(".mutate-btn").forEach((btn, i) => {
+    btn.addEventListener("click", () => {
+      const slots = $("mutateSlots");
+      const existing = slots.querySelector(`[data-slot="${i}"]`);
+      if (existing) {
+        existing.remove();
+        return;
+      }
+      const el = document.createElement("button");
+      el.setAttribute("data-slot", String(i));
+      el.setAttribute("aria-hidden", "true");
+      el.tabIndex = -1;
+      el.style.cssText = "width:1px;height:1px;padding:0;margin:0;border:0;opacity:0;position:absolute;pointer-events:none;";
+      slots.appendChild(el);
+    });
+  });
+  $("exportWav").addEventListener("click", async () => {
+    if (!lastScore) return;
+    const btn = $("exportWav");
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Rendering\u2026";
+    try {
+      const tuning = currentTuning();
+      await exportScoreAsWav(lastScore, { brightness: tuning.brightness, reverb: tuning.reverb });
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   });
   window.__wseAnalyze = analyze;
 })();
